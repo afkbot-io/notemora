@@ -1,0 +1,12 @@
+services:
+  db:
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set your database password}"
+  migrate:
+    environment: &production
+      REVIEW_DATABASE_URL: "${REVIEW_DATABASE_URL:?Set your database URL}"
+      REVIEW_WEB_ORIGIN: "${REVIEW_WEB_ORIGIN:?Set your HTTPS origin}"
+      REVIEW_ENVIRONMENT: production
+      REVIEW_COOKIE_SECURE: "true"
+  api:
+    environment: *production

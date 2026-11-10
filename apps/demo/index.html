@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Демонстрация SDK · Оформление заказа</title>
+<style>body{margin:0;background:#f1f4f9;font:16px/1.5 system-ui;color:#182438}main{max-width:700px;margin:60px auto;padding:32px;background:white;border-radius:20px}header{display:flex;justify-content:space-between;align-items:center}h1{font-size:28px}article{padding:24px;border:1px solid #dce3ef;border-radius:14px;margin:24px 0}button{padding:13px 20px;border:0;border-radius:10px;background:#315bdf;color:white;font:inherit;cursor:pointer}input{display:block;margin:10px 0;padding:12px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;max-width:100%}.muted{color:#64738b}.notice{padding:14px;border-radius:10px;background:#e8f5ef;color:#187763}code{overflow-wrap:anywhere}@media(max-width:760px){main{margin:24px 12px;padding:22px}header{display:block}}</style></head><body><main>
+<header><strong>Пример подключения</strong><span class="muted">Только синтетические данные</span></header><h1>Оформление заказа</h1><p class="muted">На этой странице можно проверить выбор блока, снимок и обсуждение через отдельный Notemora API.</p>
+<article data-review-id="delivery-card" data-review-label="Способ получения"><h2>Способ получения</h2><p>Курьером завтра, с 10:00 до 18:00</p><p>Стоимость доставки: 250 ₽</p></article>
+<label>Поле, которое должно скрываться на снимке<input value="Скрываемое синтетическое значение" aria-label="Тестовое приватное поле" /></label>
+<button data-review-id="confirm-order" data-review-label="Подтвердить заказ" id="confirm">Подтвердить заказ</button><p id="result" class="muted">При выборе блока это действие не должно запускаться.</p>
+<p class="muted" id="setup"></p></main>
+<script type="module">
+import { initReview } from 'http://127.0.0.1:5290/sdk/review.js';
+const projectId = new URL(location.href).searchParams.get('project');
+if(projectId) { window.review = initReview({serviceUrl:'http://127.0.0.1:5290',projectId,surface:'app',build:'local-demo',page:()=>({key:'checkout-demo',title:'Оформление заказа'})}); }
+else { document.querySelector('#setup').textContent='Откройте страницу с ?project=<ID проекта из кабинета>. Разрешённый origin: http://127.0.0.1:5291'; }
+document.querySelector('#confirm').addEventListener('click',()=>{document.querySelector('#result').textContent='Действие страницы выполнено';document.querySelector('#result').className='notice';});
+</script></body></html>

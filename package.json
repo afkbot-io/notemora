@@ -1,0 +1,28 @@
+{
+  "name": "notemora-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/web",
+    "packages/sdk"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build -w @notemora/sdk && npm run build -w @notemora/web && node scripts/copy-sdk.mjs",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run build -w @notemora/sdk && node --experimental-strip-types --test tests/sdk/*.test.mjs",
+    "test:browser": "npm run build -w @notemora/sdk && playwright test",
+    "format": "prettier --write apps/web packages/sdk scripts/*.mjs tests/browser playwright.config.mjs *.json",
+    "format:check": "prettier --check apps/web packages/sdk scripts/*.mjs tests/browser playwright.config.mjs *.json",
+    "pack:sdk": "npm run build -w @notemora/sdk && node scripts/pack-sdk.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "prettier": "^3.6.0",
+    "typescript": "~5.9.3"
+  },
+  "license": "MIT"
+}

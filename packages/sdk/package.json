@@ -1,0 +1,30 @@
+{
+  "name": "@notemora/sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/review.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/review.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.1.0",
+    "html2canvas": "^1.4.1"
+  },
+  "devDependencies": {
+    "vite": "^8.0.0"
+  },
+  "private": true,
+  "license": "MIT",
+  "description": "Anchored UI feedback SDK for Notemora"
+}

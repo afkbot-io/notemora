@@ -1,0 +1,48 @@
+name: notemora
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: review
+      POSTGRES_PASSWORD: review
+      POSTGRES_DB: review
+    ports:
+      - "127.0.0.1:55582:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U review -d review"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  migrate:
+    build: .
+    image: notemora:local
+    command: [review-admin, migrate]
+    environment: &api-environment
+      REVIEW_DATABASE_URL: postgresql+psycopg://review:review@db:5432/review
+      REVIEW_WEB_ORIGIN: http://127.0.0.1:5292
+      REVIEW_ENVIRONMENT: development
+      REVIEW_COOKIE_SECURE: "false"
+      REVIEW_STORAGE_DIR: /app/.local/attachments
+    depends_on:
+      db:
+        condition: service_healthy
+  api:
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    image: notemora:local
+    environment: *api-environment
+    ports:
+      - "127.0.0.1:5292:8990"
+    volumes:
+      - attachments:/app/.local/attachments
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+volumes:
+  postgres:
+  attachments:

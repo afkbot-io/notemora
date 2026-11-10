@@ -1,0 +1,88 @@
+name: CI
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  api:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: review
+          POSTGRES_PASSWORD: review
+          POSTGRES_DB: review_test
+        ports: [5432:5432]
+        options: --health-cmd "pg_isready -U review -d review_test" --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      REVIEW_TEST_DATABASE_URL: postgresql+psycopg://review:review@127.0.0.1:5432/review_test
+      REVIEW_ENVIRONMENT: test
+      REVIEW_COOKIE_SECURE: "false"
+      REVIEW_WEB_ORIGIN: http://testserver
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install uv==0.12.8
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest tests/api
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.22.2"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run format:check
+      - run: npm test
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run test:browser
+      - run: npm run build
+      - run: npm run pack:sdk
+  deployment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+      - run: python -m pip install uv==0.12.8
+      - run: uv sync --frozen
+      - run: sh scripts/ci/install-tools.sh helm
+      - run: uv run python -m unittest discover -s tests/deploy -v
+  container:
+    runs-on: ubuntu-24.04
+    needs: [api, web, deployment]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker build --build-arg VCS_REF=${{ github.sha }} --tag notemora:ci .
+      - name: Validate production Compose configuration
+        env:
+          POSTGRES_PASSWORD: synthetic-only
+          REVIEW_DATABASE_URL: postgresql+psycopg://review:synthetic-only@db:5432/review
+          REVIEW_WEB_ORIGIN: https://review.example.com
+        run: docker compose -f compose.yaml -f deploy/compose.production.example.yaml config --quiet

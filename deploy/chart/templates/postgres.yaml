@@ -1,0 +1,83 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: review-postgres
+spec:
+  clusterIP: None
+  selector:
+    app: review-postgres
+  ports:
+    - port: 5432
+      name: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: review-postgres
+spec:
+  serviceName: review-postgres
+  replicas: 1
+  selector:
+    matchLabels: {app: review-postgres}
+  template:
+    metadata:
+      labels: {app: review-postgres}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      securityContext:
+        fsGroup: 70
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: postgres
+          image: {{ .Values.postgresImage }}
+          securityContext:
+            runAsUser: 70
+            runAsGroup: 70
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: review
+            - name: POSTGRES_DB
+              value: review
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.runtimeSecret }}
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: '1', memory: 1Gi}
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, review, -d, review]
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, review, -d, review]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: socket
+              mountPath: /var/run/postgresql
+      volumes:
+        - name: socket
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: {{ .Values.storageClass }}
+        resources:
+          requests:
+            storage: {{ .Values.databaseSize }}

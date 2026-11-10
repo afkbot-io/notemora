@@ -1,0 +1,15 @@
+host: review.example.com
+image:
+  repository: registry.example.com/notemora
+  tag: ""
+  digest: ""
+pullSecret: ""
+runtimeSecret: notemora-env
+nodeSelector: {}
+postgresImage: postgres:17-alpine
+storageClass: local-path
+databaseSize: 8Gi
+attachmentsSize: 5Gi
+ingress:
+  clusterIssuer: letsencrypt
+  tlsSecret: notemora-tls
