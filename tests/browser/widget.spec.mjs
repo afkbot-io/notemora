@@ -210,14 +210,18 @@ for (const width of [320, 390, 480]) {
     const { widget, panel, target } = await openWidget(page, context, {
       existing: true,
     });
-    const toolbar = await widget.locator(".toolbar").boundingBox();
-    expect(toolbar.x).toBeGreaterThanOrEqual(0);
-    expect(toolbar.x + toolbar.width).toBeLessThanOrEqual(width);
+    const toolbar = widget.getByRole("toolbar", { name: "Режим комментариев" });
+    await expect
+      .poll(async () => {
+        const bounds = await toolbar.boundingBox();
+        return (
+          bounds !== null && bounds.x >= 0 && bounds.x + bounds.width <= width
+        );
+      })
+      .toBe(true);
     await expect
       .poll(() =>
-        widget
-          .locator(".toolbar")
-          .evaluate((node) => node.scrollWidth <= node.clientWidth),
+        toolbar.evaluate((node) => node.scrollWidth <= node.clientWidth),
       )
       .toBe(true);
     await panel.locator(".row").click();
